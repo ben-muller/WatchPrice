@@ -13,6 +13,7 @@ def GetWatchDetails(name, price, id):
         r = requests.get(url)
         page = pd.read_html(r.text)
     except Exception as e:
+        print(e)
         return(e, url)
     tempdf = pd.concat([page[0].set_index(0).transpose(),page[1].set_index(0).transpose()], axis=1)
     if 'Others' in tempdf.columns:
