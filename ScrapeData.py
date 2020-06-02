@@ -8,12 +8,13 @@ from tqdm import tqdm_notebook
 
 def GetWatchDetails(name, price, id):
     """Get listing details for any watch given a id.htm link"""
+    if id in pd.read_feather('SavedSeaches.feather')['index'].values:
+        return pd.read_feather('ListingDB.feather').set_index('index').loc[id]
     url = f'https://www.chrono24.com.au/rolex/{id}'
     try:
         r = requests.get(url)
         page = pd.read_html(r.text)
     except Exception as e:
-        print(e)
         return(e, url)
     tempdf = pd.concat([page[0].set_index(0).transpose(),page[1].set_index(0).transpose()], axis=1)
     if 'Others' in tempdf.columns:
@@ -23,8 +24,14 @@ def GetWatchDetails(name, price, id):
     tempdf['price'] = price
     tempdf['name'] = name
     tempdf['url'] = url
+    tempdf['retrieved'] = pd.Timestamp('now')
     tempdf.index = [id]
     tempdf = tempdf.groupby(level=0, axis=1).last()
+    if not tempdf.empty:
+        savedf = pd.read_feather('ListingDB.feather').set_index('index')
+        savedf = savedf.append(tempdf)
+        savedf.reset_index()[['index']].to_feather('SavedSeaches.feather')
+        savedf.reset_index().to_feather('ListingDB.feather')
     return(tempdf)
 
 class ScrapeError(Exception):
